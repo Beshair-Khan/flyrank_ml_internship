@@ -18,3 +18,20 @@ def load_data():
     meta_data=pd.read_parquet(test_metadata_loc)
     X_test=pd.read_parquet(X_test_loc)
     return meta_data,X_test
+
+booster=load_model()
+meta_data, X_test=load_data()
+dmatrix=xgb.DMatrix(X_test)
+st.write(booster.predict(dmatrix).shape)
+prob=booster.predict(dmatrix)[:,0]
+prob_ser=pd.Series(prob,index=X_test.index)
+meta_data=meta_data.join(prob_ser.rename('probability'))
+
+all_clients=meta_data
+unique_client=meta_data['client_hash_id'].unique().tolist()
+selected=st.selectbox("Clients",options=['All Clients'] + unique_client)
+if selected=='All Clients':
+    filtered=all_clients
+else:
+    filtered=all_clients[all_clients['client_hash_id']==selected]
+st.dataframe(filtered)
