@@ -25,6 +25,7 @@ dmatrix=xgb.DMatrix(X_test)
 prob=booster.predict(dmatrix)[:,0]
 prob_ser=pd.Series(prob,index=X_test.index)
 meta_data=meta_data.join(prob_ser.rename('probability'))
+meta_data['probability']=meta_data['probability'].astype(float)
 
 # Selectbox
 all_clients=meta_data
@@ -36,7 +37,6 @@ else:
     filtered=all_clients[all_clients['client_hash_id']==selected]
 
 # Slider
-meta_data['probability']=meta_data['probability'].astype(float)
 slid=st.slider('Select Probability Range',min_value=meta_data['probability'].min(), max_value=meta_data['probability'].max(), step=0.01,value=meta_data['probability'].quantile(0.90))
 filtered=filtered[filtered['probability']>=slid]
 filtered=filtered.sort_values(by='probability',ascending=False)
