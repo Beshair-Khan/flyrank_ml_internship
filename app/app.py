@@ -22,7 +22,6 @@ def load_data():
 booster=load_model()
 meta_data, X_test=load_data()
 dmatrix=xgb.DMatrix(X_test)
-st.write(booster.predict(dmatrix).shape)
 prob=booster.predict(dmatrix)[:,0]
 prob_ser=pd.Series(prob,index=X_test.index)
 meta_data=meta_data.join(prob_ser.rename('probability'))
@@ -43,6 +42,7 @@ filtered=filtered[filtered['probability']>=slid]
 filtered=filtered.sort_values(by='probability',ascending=False)
 filtered=filtered.rename(columns={'probability':'Decline Risk (%)'})
 filtered['Decline Risk (%)']=filtered['Decline Risk (%)']*100
+st.caption(f"filtering {filtered.shape[0]:,} out of {meta_data.shape[0]:,} ")
 st.dataframe(filtered,column_config={
     "Decline Risk (%)":st.column_config.NumberColumn("Decline Risk (%)",format="%.2f%%",)
 })
