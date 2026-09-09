@@ -6,7 +6,7 @@ data/**
 !data/raw/content_refresh_anonymized.csv
 
 # Never commit bulk dataset dumps or archives
-*.parquet
+# *.parquet
 *.zip
 *.tar
 *.tar.gz
