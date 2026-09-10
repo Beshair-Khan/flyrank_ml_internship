@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Catching Search Decline Before It Happens FlyRank ML Internship Capstone</title>
+<meta name="description" content="A ranked, decision-support model that predicts which webpages are about to decline in search performance, built on 9.9M rows of real page-level search data.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#141821;
+    --ink-soft:#232a37;
+    --paper:#F2EEE2;
+    --paper-dim:#E8E3D4;
+    --line:#D8D2BF;
+    --line-dark:#3A4152;
+    --text:#232323;
+    --text-soft:#5B584E;
+    --teal:#2E6B60;
+    --teal-soft:#DCE8E3;
+    --brick:#9A3B2C;
+    --brick-soft:#F0DDD6;
+    --stable:#736C5C;
+    --stable-soft:#E7E2D3;
+    --gold:#B8842E;
+    --maxw:740px;
+    --railw:230px;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--text);
+    font-family:'Inter',sans-serif;
+    line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3,.display{
+    font-family:'Fraunces',serif;
+    font-weight:500;
+    color:var(--text);
+    line-height:1.15;
+    margin:0;
+  }
+  a{color:inherit;}
+  img{max-width:100%;display:block;}
+
+  /* ===== Top bar ===== */
+  .topbar{
+    position:sticky;top:0;z-index:50;
+    display:flex;align-items:center;justify-content:space-between;
+    padding:14px 28px;
+    background:rgba(20,24,33,0.92);
+    backdrop-filter:blur(6px);
+    color:#EDE9DD;
+    font-size:14px;
+  }
+  .topbar .mark{font-family:'Fraunces',serif;font-weight:600;font-size:16px;letter-spacing:0.2px;}
+  .topbar nav{display:flex;gap:22px;align-items:center;}
+  .topbar nav a{text-decoration:none;color:#C9C4B4;font-size:13.5px;transition:color .15s;}
+  .topbar nav a:hover{color:#fff;}
+  .topbar .cta{
+    background:var(--teal);color:#fff;padding:8px 16px;border-radius:3px;
+    font-weight:600;font-size:13px;text-decoration:none;
+  }
+
+  /* ===== Hero ===== */
+  .hero{
+    background:var(--ink);
+    color:#EDE9DD;
+    padding:72px 28px 84px;
+  }
+  .hero-inner{max-width:var(--maxw);margin:0 auto;}
+  .kicker{
+    font-size:13px;color:#9FA6B8;margin-bottom:18px;
+    display:flex;align-items:center;gap:10px;
+  }
+  .kicker .dot{width:6px;height:6px;border-radius:50%;background:var(--teal);display:inline-block;}
+  .hero h1{
+    font-size:clamp(34px,5vw,54px);
+    letter-spacing:-0.5px;
+    color:#F5F2E8;
+    margin-bottom:22px;
+  }
+  .hero .lede{
+    font-size:17.5px;color:#C9C4B4;max-width:620px;margin-bottom:40px;
+  }
+  .stat-compare{
+    display:flex;align-items:center;gap:22px;
+    border-top:1px solid var(--line-dark);
+    padding-top:32px;margin-top:8px;
+    flex-wrap:wrap;
+  }
+  .stat-block{display:flex;flex-direction:column;}
+  .stat-block .num{font-family:'Fraunces',serif;font-size:44px;font-weight:600;line-height:1;}
+  .stat-block .lbl{font-size:12.5px;color:#9FA6B8;margin-top:8px;}
+  .stat-block.before .num{color:#C97A6B;}
+  .stat-block.after .num{color:#6FBBA6;}
+  .stat-arrow{color:#5A6070;font-size:22px;padding-bottom:14px;}
+
+  /* ===== Layout: rail + content ===== */
+  .layout{
+    display:grid;
+    grid-template-columns:var(--railw) 1fr;
+    max-width:1080px;
+    margin:0 auto;
+    align-items:start;
+  }
+  .rail{
+    position:sticky;top:52px;
+    padding:56px 20px 40px 28px;
+    font-size:13.5px;
+  }
+  .rail .rail-title{color:var(--text-soft);margin-bottom:16px;font-size:12.5px;}
+  .rail ol{list-style:none;margin:0;padding:0;}
+  .rail li{margin-bottom:4px;}
+  .rail a{
+    display:flex;gap:10px;text-decoration:none;color:var(--text-soft);
+    padding:6px 0;border-left:2px solid transparent;padding-left:12px;
+    transition:color .15s,border-color .15s;
+  }
+  .rail a:hover, .rail a.active{color:var(--text);border-left-color:var(--teal);}
+  .rail .idx{color:#B4AD98;font-variant-numeric:tabular-nums;min-width:16px;}
+
+  main{padding:56px 28px 40px 40px;border-left:1px solid var(--line);min-height:100vh;}
+  section{max-width:var(--maxw);margin:0 auto 76px;scroll-margin-top:70px;}
+  section:last-of-type{margin-bottom:40px;}
+
+  .eyebrow{
+    font-size:13px;color:var(--teal);font-weight:600;margin-bottom:10px;
+    display:flex;align-items:center;gap:8px;
+  }
+  .eyebrow .n{
+    width:22px;height:22px;border-radius:50%;border:1px solid var(--teal);
+    display:flex;align-items:center;justify-content:center;font-size:11px;
+    font-family:'Inter',sans-serif;
+  }
+  section h2{font-size:28px;margin-bottom:20px;}
+  section h3{font-size:18px;margin:28px 0 10px;font-weight:600;}
+  section p{margin:0 0 16px;color:var(--text);}
+  section p.soft{color:var(--text-soft);}
+  .lead-p{font-size:17px;color:var(--text-soft);margin-bottom:24px;}
+
+  ul.clean{margin:0 0 16px;padding-left:20px;}
+  ul.clean li{margin-bottom:10px;}
+  ul.clean li strong{font-weight:600;}
+
+  /* stat row */
+  .facts{
+    display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));
+    gap:14px;margin:24px 0 8px;
+    border-top:1px solid var(--line);border-bottom:1px solid var(--line);
+    padding:22px 0;
+  }
+  .fact .num{font-family:'Fraunces',serif;font-size:26px;font-weight:600;}
+  .fact .lbl{font-size:12.5px;color:var(--text-soft);margin-top:4px;}
+
+  /* table */
+  table{width:100%;border-collapse:collapse;margin:22px 0;font-size:14.5px;}
+  th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);}
+  th{color:var(--text-soft);font-weight:600;font-size:12.5px;}
+  tr.highlight td{background:var(--teal-soft);font-weight:600;}
+  td.mono{font-variant-numeric:tabular-nums;}
+
+  /* figure */
+  figure{margin:28px 0;}
+  figure img{border:1px solid var(--line);border-radius:2px;}
+  figcaption{font-size:13px;color:var(--text-soft);margin-top:10px;}
+
+  /* before/after card */
+  .shift{
+    display:flex;gap:24px;align-items:center;flex-wrap:wrap;
+    background:var(--paper-dim);border:1px solid var(--line);
+    border-radius:4px;padding:22px 24px;margin:22px 0;
+  }
+  .shift .col{flex:1;min-width:140px;}
+  .shift .col .tag{font-size:12px;color:var(--text-soft);margin-bottom:6px;}
+  .shift .col .big{font-family:'Fraunces',serif;font-size:30px;font-weight:600;}
+  .shift .arrow{font-size:20px;color:var(--gold);}
+
+  /* callout */
+  .callout{
+    border-left:3px solid var(--brick);
+    background:var(--brick-soft);
+    padding:16px 20px;border-radius:0 3px 3px 0;
+    font-size:14.5px;color:#5c261b;margin:22px 0;
+  }
+  .callout.teal{border-left-color:var(--teal);background:var(--teal-soft);color:#1c4941;}
+
+  /* class legend pills */
+  .pill{display:inline-flex;align-items:center;gap:6px;font-size:13px;padding:3px 10px 3px 6px;border-radius:20px;margin:0 6px 6px 0;}
+  .pill .dot{width:8px;height:8px;border-radius:50%;}
+  .pill.growing{background:var(--teal-soft);color:#1c4941;}
+  .pill.growing .dot{background:var(--teal);}
+  .pill.declining{background:var(--brick-soft);color:#5c261b;}
+  .pill.declining .dot{background:var(--brick);}
+  .pill.stable{background:var(--stable-soft);color:#433f34;}
+  .pill.stable .dot{background:var(--stable);}
+
+  /* CTA card */
+  .app-cta{
+    background:var(--ink);color:#EDE9DD;border-radius:6px;
+    padding:34px 32px;margin:30px 0;
+    display:flex;justify-content:space-between;align-items:center;gap:24px;flex-wrap:wrap;
+  }
+  .app-cta h3{color:#F5F2E8;margin:0 0 8px;font-size:20px;}
+  .app-cta p{color:#B7B2A0;margin:0;max-width:380px;font-size:14.5px;}
+  .app-cta .btn{
+    background:var(--teal);color:#fff;padding:12px 22px;border-radius:3px;
+    text-decoration:none;font-weight:600;font-size:14px;white-space:nowrap;
+  }
+
+  code{background:var(--paper-dim);padding:2px 6px;border-radius:3px;font-size:13px;}
+
+  footer{
+    padding:40px 28px 60px;text-align:center;
+    color:var(--text-soft);font-size:13px;border-top:1px solid var(--line);
+  }
+  footer a{color:var(--teal);text-decoration:none;}
+
+  @media (max-width:860px){
+    .layout{grid-template-columns:1fr;}
+    .rail{
+      position:sticky;top:52px;padding:14px 0 14px 0;
+      background:var(--paper);z-index:10;border-bottom:1px solid var(--line);
+    }
+    .rail ol{display:flex;overflow-x:auto;gap:4px;padding:0 20px;}
+    .rail li{margin:0;flex:0 0 auto;}
+    .rail a{border-left:none;border-bottom:2px solid transparent;padding:6px 10px;white-space:nowrap;}
+    .rail a:hover,.rail a.active{border-left-color:transparent;border-bottom-color:var(--teal);}
+    .rail-title{display:none;}
+    main{padding:36px 20px;border-left:none;}
+    .topbar{padding:12px 16px;}
+    .topbar nav a:not(.cta){display:none;}
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="mark">FlyRank capstone</div>
+  <nav>
+    <a href="https://github.com/Beshair-Khan/flyrank_ml_internship" target="_blank" rel="noopener">Repo</a>
+    <a href="https://ml-internhsip.streamlit.app/" target="_blank" rel="noopener" class="cta">Open the tool</a>
+  </nav>
+</div>
+
+<div class="hero">
+  <div class="hero-inner">
+    <div class="kicker"><span class="dot"></span>FlyRank ML internship's capstone research</div>
+    <h1>Catching search decline before it happens</h1>
+    <p class="lede">A ranked, decision support model that tells a content team which pages are likely to lose search traffic next month built and honestly evaluated on 9.9M rows of real, page level search data.</p>
+    <div class="stat-compare">
+      <div class="stat-block before">
+        <span class="num">0%</span>
+        <span class="lbl">precision@50, hand written rule</span>
+      </div>
+      <div class="stat-arrow">→</div>
+      <div class="stat-block after">
+        <span class="num">68%</span>
+        <span class="lbl">precision@50, weighted XGBoost</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="layout">
+  <aside class="rail">
+    <div class="rail-title">Contents</div>
+    <ol>
+      <li><a href="#abstract"><span class="idx">—</span>Abstract</a></li>
+      <li><a href="#intro"><span class="idx"></span>Introduction</a></li>
+      <li><a href="#data"><span class="idx"></span>Data</a></li>
+      <li><a href="#method"><span class="idx"></span>Methodology</a></li>
+      <li><a href="#results"><span class="idx"></span>Results</a></li>
+      <li><a href="#limits"><span class="idx"></span>Limitations</a></li>
+      <li><a href="#recs"><span class="idx"></span>Recommendations</a></li>
+      <li><a href="#repro"><span class="idx"></span>Reproducibility</a></li>
+    </ol>
+  </aside>
+
+  <main>
+
+    <section id="abstract">
+      <div class="eyebrow"><span class="n">—</span>Abstract</div>
+      <p class="lead-p">Content teams need a way to know which webpages are likely to lose traffic <em>before</em> it happens, not after. This project builds a machine learning model that predicts whether a webpage's search performance will grow, decline, or stay stable, using one month of page level search and engagement data from FlyRank's internship warehouse.</p>
+      <p>We compared a simple hand written threshold rule against a Decision Tree, a Random Forest, and XGBoost, evaluating each on <strong>precision@50</strong> how often the model's top ranked "Declining" calls were actually correct. The hand rule failed completely (0% precision). A weighted XGBoost model reached <strong>68% precision@50</strong> and correctly identified <strong>51% of all truly declining pages</strong>, a substantial improvement after we found and corrected a class imbalance problem in the model's initial results.</p>
+      <p class="soft">The final model outputs a ranked, decision-support recommendation list not a verdict. It is meant to help a content team decide which pages to review first, not to replace that review.</p>
+    </section>
+
+    <section id="intro">
+      <div class="eyebrow"><span class="n">01</span>Introduction</div>
+      <h2>The decision this work supports</h2>
+      <p>We are trying to predict whether a webpage's performance will grow, decline, or stay stable, so an SEO or content team can decide which pages to review first.</p>
+      <p>Getting this wrong has two different costs. If we miss a page that's about to decline, the team loses traffic without knowing. If we flag too many stable pages as risky, the team wastes review time on pages that didn't need it. There are usually multiple, tangled factors behind a page's decline a simple hand rule can't account for all of them, and would take far too long to encode by hand even if it could. That's the case for using a trained model instead of a fixed set of thresholds.</p>
+      <p>The target has three outcomes <span class="pill growing"><span class="dot"></span>Growing</span><span class="pill declining"><span class="dot"></span>Declining</span><span class="pill stable"><span class="dot"></span>Stable</span> and the model is evaluated as a <strong>ranking</strong> problem using <strong>precision@k</strong>, since what a content team actually needs is a trustworthy, ordered shortlist, not just a raw label.</p>
+    </section>
+
+    <section id="data">
+      <div class="eyebrow"><span class="n">02</span>Data</div>
+      <h2>One real month, at warehouse scale</h2>
+      <p>This project uses the <code>FlyRank/internship warehouse</code> release, the <code>March 2026</code> and <code>April 2026</code> partitions of <code>fact_content_daily_performance</code>. March builds the features; April supplies the true, realized outcome the model is scored against.</p>
+      <div class="facts">
+        <div class="fact"><div class="num">9.9M</div><div class="lbl">rows, March release</div></div>
+        <div class="fact"><div class="num">30</div><div class="lbl">columns</div></div>
+        <div class="fact"><div class="num">331K</div><div class="lbl">unique pages, March</div></div>
+        <div class="fact"><div class="num">362K</div><div class="lbl">unique pages, April</div></div>
+      </div>
+      <p>April contains roughly 30,700 pages with no March baseline — new pages that appeared mid-window. These were dropped entirely before labeling, since there's no fair "before" to compare them against.</p>
+      <h3>Missingness, and what we did about it</h3>
+      <p>Two columns had meaningful gaps. <code>client_has_ga4</code> is <code>False</code> for roughly <strong>31% of clients</strong> no GA4 (on-page behavior) data at all for that slice. Separately, <code>gsc_avg_position</code> is missing on <strong>6.2M rows (~63.3%)</strong> of the full dataset far more than the GA4 gap so it was not used as a model feature.</p>
+      <p class="soft">No client names, domains, URLs, or credentials appear anywhere in this repository or in the figures below all identifiers are hashed, and reporting stays at the aggregate level.</p>
+    </section>
+
+    <section id="method">
+      <div class="eyebrow"><span class="n">03</span>Methodology</div>
+      <h2>Defining "declining" honestly</h2>
+      <p>Labels come from the change in <code>gsc_clicks</code> between March and April, per page, using deliberately asymmetric thresholds:</p>
+      <ul class="clean">
+        <li><span class="pill growing"><span class="dot"></span>Growing: </span>clicks up more than <strong>+15%</strong></li>
+        <li><span class="pill declining"><span class="dot"></span>Declining: </span>clicks down more than <strong>−10%</strong></li>
+        <li><span class="pill stable"><span class="dot"></span>Stable: </span>everything in between</li>
+      </ul>
+      <p>The asymmetry is intentional: catching a real decline early matters more than confirming growth, so decline is flagged at a lower bar than growth. Pages with zero March clicks can't be scored as a percentage change, so they're handled with a separate rule both months at zero stays <span class="pill stable"><span class="dot"></span>Stable</span>, zero moving to any clicks becomes <span class="pill growing"><span class="dot"></span>Growing</span> (decline is mathematically impossible from a zero baseline).</p>
+      <p>A page with 1–9 March clicks can swing ±100% from a single click fluctuation noise, not a trend. Those pages get their own label, <span class="pill stable"><span class="dot"></span>Low Volume</span>, rather than being forced through the percentage thresholds.</p>
+      <h3>Features</h3>
+      <p>Four features, aggregated per page over March: <code>gsc_impressions</code>, <code>ga4_pageviews</code>, <code>scroll_events</code>, and <code>ga4_availability_pct</code> the share of March days a page's client actually had GA4 running, which tells the model how much to trust that page's engagement totals versus treating a low number as genuinely low.</p>
+      <h3>Validation design</h3>
+      <p>Splitting was done with <code>GroupShuffleSplit</code>, grouped by <code>client_hash_id</code>, so no client's pages appear in both the train and test sets. This was verified directly by checking that the two client-ID sets share an empty intersection not assumed.</p>
+    </section>
+
+    <section id="results">
+      <div class="eyebrow"><span class="n">04</span>Results</div>
+      <h2>Four approaches, on the same split</h2>
+      <p>Each approach was ranked by its own confidence score and scored on precision@k the share of its top ranked "Declining" calls that were genuinely declining.</p>
+      <table>
+        <thead><tr><th>Model</th><th>Precision@k</th><th>k</th><th>Note</th></tr></thead>
+        <tbody>
+          <tr><td>Hand-written rule</td><td class="mono">0.0%</td><td class="mono">50</td><td>Low impression pages were mostly already-stable, zero click pages</td></tr>
+          <tr><td>Decision Tree</td><td class="mono">45.9%</td><td class="mono">355</td><td>355 rows tied at max confidence evaluated across all ties</td></tr>
+          <tr><td>Random Forest</td><td class="mono">54.0%</td><td class="mono">50</td><td>Smooth, genuinely ranked scores</td></tr>
+          <tr><td>XGBoost</td><td class="mono">66.0%</td><td class="mono">50</td><td>Best so far, untreated for class imbalance</td></tr>
+          <tr class="highlight"><td>XGBoost, class-weighted</td><td class="mono">68.0%</td><td class="mono">50</td><td>Final model</td></tr>
+        </tbody>
+      </table>
+      <figure>
+        <img src="https://raw.githubusercontent.com/Beshair-Khan/flyrank_ml_internship/main/outputs/charts/model_comparison_bar_chart.png" alt="Bar chart comparing precision@k across the hand rule, Decision Tree, Random Forest, and XGBoost models">
+        <figcaption>Precision@k across all four approaches. The hand rule found nothing; every trained model found real, usable signal.</figcaption>
+      </figure>
+
+      <h3>The recall problem the top-k score hid</h3>
+      <p>Precision@50 only looks at a model's most confident calls. Scored across all 30,557 test pages, the unweighted XGBoost model told a different story: Declining precision of <strong>0.58</strong>, but recall of only <strong>0.16</strong> it was missing roughly <strong>84% of pages that were genuinely declining</strong>. Stable makes up about 75% of the dataset and Declining only about 3%, and with no correction the model leaned hard toward the majority class.</p>
+      <figure>
+        <img src="https://raw.githubusercontent.com/Beshair-Khan/flyrank_ml_internship/main/outputs/charts/confusion_matrix_heatmap.png" alt="Confusion matrix heatmap for the weighted XGBoost model, rows are actual labels and columns are predicted labels">
+        <figcaption>Confusion matrix, weighted XGBoost — rows are actual labels, columns are predicted.</figcaption>
+      </figure>
+
+      <h3>Fixing it with class weighting</h3>
+      <p>Retraining with <code>compute_sample_weight(class_weight='balanced')</code> gave rare classes like Declining more weight during training. Both metrics that matter for this task moved together not a typical precision/recall trade-off:</p>
+      <div class="shift">
+        <div class="col"><div class="tag">Declining recall</div><div class="big">16% → 51%</div></div>
+        <div class="col"><div class="tag">Precision@50</div><div class="big">66% → 68%</div></div>
+      </div>
+      <p class="soft">Given that missing a real decline costs more than a false alarm (Section 1), the weighted model is the one selected for the recommendations below.</p>
+
+      <figure>
+        <img src="https://raw.githubusercontent.com/Beshair-Khan/flyrank_ml_internship/main/outputs/charts/label_distribution_chart.png" alt="Pie chart of label distribution across all 331,436 pages">
+        <figcaption>Label distribution across all 331,436 labeled pages Stable dominates at roughly 76%, driven largely by the zero-click page group.</figcaption>
+      </figure>
+    </section>
+
+    <section id="limits">
+      <div class="eyebrow"><span class="n">05</span>Limitations</div>
+      <h2>What this work cannot claim</h2>
+      <div class="callout">
+        These results are decision support, not verdicts. Precision@50 measures how often the model's top ranked pages are correctly flagged it does not guarantee any individual page's status, and should inform which pages a team reviews first, not replace that review.
+      </div>
+      <ul class="clean">
+        <li><strong>Single month window.</strong> Features come from March 2026 only, predicting into April 2026 only the model has never seen a page across multiple consecutive months, so April's outcome could reflect something specific to that month rather than a stable, repeating trend.</li>
+        <li><strong>Correlation, not causation.</strong> The model finds patterns associated with decline; it does not identify what causes it. A high scoring page should be reviewed, not assumed to have a known root cause.</li>
+        <li><strong>Excluded and re bucketed pages.</strong> ~30,700 April only pages were dropped (no March baseline); 1–9 click pages became <span class="pill stable"><span class="dot"></span>Low Volume</span> instead of a forced trend label; zero click pages used a separate rule. Reported precision reflects the subset of pages with enough March activity to trend reliably.</li>
+        <li><strong>Partial GA4 coverage.</strong> ~31% of clients have no GA4 data in March. <code>ga4_availability_pct</code> flags this, but low availability pages lean more heavily on <code>gsc_impressions</code> alone.</li>
+        <li><strong>Thresholds are judgment calls.</strong> The +15% / −10% asymmetric bounds reflect a deliberate decision, not a boundary discovered in the data. A different reasonable threshold would shift every downstream number.</li>
+        <li><strong>Uneven, untuned performance.</strong> Even after weighting, roughly half of real declining pages are still missed. Growing performs worse than Declining and wasn't specifically addressed. All models used default hyperparameters on a single 80/20 split, with no cross validation split-to-split stability is untested.</li>
+      </ul>
+    </section>
+
+    <section id="recs">
+      <div class="eyebrow"><span class="n">06</span>Recommendations</div>
+      <h2>Two ranked lists, built for different jobs</h2>
+      <p>Both tables rank pages by decline confidence only page ID, client ID, and score, no ground truth label, since these are genuine forward looking calls with no known outcome yet.</p>
+      <h3>Global top 50</h3>
+      <p>Ranking every test page by decline confidence and taking the overall top 50 surfaced the highest confidence calls across the whole portfolio but all 50 rows belonged to a single client, simply because that client had the second largest page count in the test set (9,308 of the 11 total test clients). Client size was driving the list as much as genuine decline severity.</p>
+      <h3>Top 5 per client</h3>
+      <p>Ranking within each client separately and taking each client's own top 5 guarantees every client shows up all 11 test clients are represented, regardless of size. This is the view built for a team managing multiple accounts, so a smaller or newer client's real risk isn't hidden behind a larger client's page count.</p>
+      <div class="app-cta">
+        <div>
+          <h3>See it running on real predictions</h3>
+          <p>The weighted XGBoost model, deployed as an interactive tool filter by client, set a confidence threshold, and get a live ranked shortlist.</p>
+        </div>
+        <a class="btn" href="https://ml-internhsip.streamlit.app/" target="_blank" rel="noopener">Open the tool</a>
+      </div>
+    </section>
+
+    <section id="repro">
+      <div class="eyebrow"><span class="n">07</span>Reproducibility</div>
+      <h2>Run it yourself</h2>
+      <p>All code lives in <code>work/notebooks/</code> of the repository below, including the capstone notebook and the weekly assignment notebooks it builds on. The analysis uses the <code>FlyRank/internship-warehouse</code> dataset (build <code>v20260703</code>) from Hugging Face specifically the March and April 2026 partitions of <code>fact_content_daily_performance</code>. Running the notebook end to end needs a Hugging Face read token with access to the gated dataset, set as the <code>HF_TOKEN</code> environment variable. No client names, private URLs, or credentials appear anywhere in the repository.</p>
+      <table>
+        <tbody>
+          <tr><td>Repository</td><td><a href="https://github.com/Beshair-Khan/flyrank_ml_internship" target="_blank" rel="noopener">github.com/Beshair-Khan/flyrank_ml_internship</a></td></tr>
+          <tr><td>Interactive tool</td><td><a href="https://ml-internhsip.streamlit.app/" target="_blank" rel="noopener">ml-internhsip.streamlit.app</a></td></tr>
+          <tr><td>Capstone notebook</td><td><code>work/notebooks/capstone.ipynb</code></td></tr>
+        </tbody>
+      </table>
+    </section>
+
+  </main>
+</div>
+
+<footer>
+  Built on the FlyRank ML Internship dataset — <a href="https://flyrank.ai" target="_blank" rel="noopener">flyrank.ai</a>
+</footer>
+
+<script>
+  // Highlight the active section in the rail as the reader scrolls
+  const links = document.querySelectorAll('.rail a');
+  const sections = Array.from(links).map(l => document.querySelector(l.getAttribute('href')));
+  function onScroll(){
+    let idx = 0;
+    const y = window.scrollY + 100;
+    sections.forEach((s,i) => { if(s && s.offsetTop <= y) idx = i; });
+    links.forEach((l,i) => l.classList.toggle('active', i === idx));
+  }
+  document.addEventListener('scroll', onScroll);
+  onScroll();
+</script>
+
+</body>
+</html>
